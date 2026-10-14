@@ -1,0 +1,27 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\CLSID\{959188D6-EB24-4E82-838B-8376A6B09D9B}]
+@="Tournament Manager Server"
+"AppID"="{6DE4406A-9F97-4C5D-B6B0-6FAAC4F52F53}"
+
+[HKEY_CLASSES_ROOT\CLSID\{959188D6-EB24-4E82-838B-8376A6B09D9B}\LocalServer32]
+@="C:\\Nikita\\source\\repos\\dcom_tt_tournament_manager\\x64\\Release\\dcom_tt_tournament_server.exe"
+"ThreadingModel"="Free"
+
+[HKEY_CLASSES_ROOT\AppID\{6DE4406A-9F97-4C5D-B6B0-6FAAC4F52F53}]
+@="Tournament Manager App"
+; "RunAs"="Interactive User"	
+
+[HKEY_CLASSES_ROOT\Interface\{4F902AEE-5381-4F1D-B79C-9887AFB14091}]
+@="ITournamentManager"
+
+; oleaut32.dll identifier for marshalling 
+[HKEY_CLASSES_ROOT\Interface\{4F902AEE-5381-4F1D-B79C-9887AFB14091}\ProxyStubClsid32]
+@="{00020424-0000-0000-C000-000000000046}"
+
+
+[HKEY_CLASSES_ROOT\Interface\{B9350BE7-CF73-41C1-AEB1-30AD0F2A6BD2}]
+@="ITournamentEvents"
+
+[HKEY_CLASSES_ROOT\Interface\{B9350BE7-CF73-41C1-AEB1-30AD0F2A6BD2}\ProxyStubClsid32]
+@="{00020424-0000-0000-C000-000000000046}"

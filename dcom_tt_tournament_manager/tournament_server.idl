@@ -1,0 +1,67 @@
+import "oaidl.idl";
+import "ocidl.idl";
+
+typedef [v1_enum] enum Role {
+	ROLE_JUDGE = 0,
+	ROLE_ADMIN = 1
+} Role;
+
+[
+	uuid(6DE4406A-9F97-4C5D-B6B0-6FAAC4F52F53),
+	version(1.0),
+	helpstring("TT Tournament DCOM Lib")
+]
+library TournamentLib {
+	importlib("stdole2.tlb");
+
+	 typedef struct PlayerStats {
+		BSTR name;
+		int place;
+		int wins;
+		int loses;
+	 } PlayerStats;
+
+	[
+		object,
+			uuid(B9350BE7-CF73-41C1-AEB1-30AD0F2A6BD2),
+			oleautomation,
+			pointer_default(unique)
+	]
+		interface ITournamentEvents : IUnknown {
+		HRESULT OnMatchStarted(
+			[in] BSTR player1,
+			[in] BSTR player2,
+			[in] int table
+		);
+		HRESULT OnGridUpdated();
+		HRESULT OnTournamentFinished([in] BSTR winnerName);
+	};
+
+	[
+		object,
+			uuid(4F902AEE-5381-4F1D-B79C-9887AFB14091),
+			oleautomation,
+			pointer_default(unique)
+	]
+		interface ITournamentManager : IUnknown {
+		HRESULT RegisterPlayer([in] BSTR player_name, [in] int rating);
+		HRESULT StartTournament([in] int tables);
+		HRESULT SaveMatchResults(
+			[in] BSTR player1,
+			[in] BSTR player2,
+			[in] int score1,
+			[in] int score2
+		);
+		HRESULT GetPlayerStats([in] BSTR player_name, [out, retval] PlayerStats* stats);
+		HRESULT Authorize([in] BSTR password, [out, retval] int* success);
+		HRESULT Subscribe([in] ITournamentEvents* p_client_sink, [in] Role role, [in] int table);
+		HRESULT Unsubscribe([in] ITournamentEvents* p_client_sink);
+	};
+
+	[
+		uuid(959188D6-EB24-4E82-838B-8376A6B09D9B)
+	]
+	coclass TournamentManager {
+		[default] interface ITournamentManager;
+	};
+};
