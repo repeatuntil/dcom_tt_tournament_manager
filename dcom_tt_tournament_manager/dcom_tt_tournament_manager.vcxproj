@@ -23,7 +23,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClassFactory.h" />
-    <ClInclude Include="resource.h" />
     <ClInclude Include="TournamentManager.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>

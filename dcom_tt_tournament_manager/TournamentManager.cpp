@@ -21,8 +21,6 @@ TournamentManager::TournamentManager() : ref_count(1) {
 }
 
 TournamentManager::~TournamentManager() {
-	std::wcout << "TournamentManager deleted. Ref count = " << ref_count << std::endl;
-
 	for (const auto p : players) {
 		delete p;
 	}
@@ -52,10 +50,6 @@ STDMETHODIMP_(ULONG) TournamentManager::Release() {
 }
 
 STDMETHODIMP TournamentManager::QueryInterface(REFIID riid, void** ppvObject) {
-	wchar_t szGuid[64];
-	StringFromGUID2(riid, szGuid, 64);
-	std::wcout << L"QueryInterface requested GUID: " << szGuid << std::endl;
-
 	if (ppvObject == nullptr) {
 		return E_POINTER;
 	}
@@ -63,14 +57,12 @@ STDMETHODIMP TournamentManager::QueryInterface(REFIID riid, void** ppvObject) {
 	if (riid == IID_IUnknown) {
 		*ppvObject = static_cast<IUnknown*>(this);
 	} else if (riid == IID_ITournamentManager) {
-		std::wcout << "IM HERE!!!" << std::endl;
 		*ppvObject = static_cast<ITournamentManager*>(this);
 	} else {
 		return E_NOINTERFACE;
 	}
 
 	AddRef();
-	std::wcout << L"ref_count=" << ref_count << std::endl;
 	return S_OK;
 }
 

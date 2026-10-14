@@ -39,10 +39,6 @@ STDMETHODIMP TournamentClassFactory::CreateInstance(IUnknown* pUnk, REFIID riid,
 		std::wcout << L"Can't create tManager instance" << std::endl;
 		delete tournament_manager;
 	} 
-	/*else {
-		std::wcout << L"release (from factory)" << std::endl;
-		tournament_manager->Release();
-	}*/
 
 	return hr;
 }
