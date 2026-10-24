@@ -14,4 +14,5 @@ public:
 
 private:
     inline static std::atomic<unsigned long> locks_count{0};
+    inline static class TournamentManager* pSingletonManager{ nullptr };
 };

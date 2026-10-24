@@ -42,7 +42,6 @@ STDMETHODIMP_(ULONG) TournamentManager::AddRef() {
 
 STDMETHODIMP_(ULONG) TournamentManager::Release() {
 	ULONG rem_ref = --ref_count;
-	std::wcout << L"release remain refs=" << rem_ref << std::endl;
 	if (rem_ref == 0) {
 		delete this;
 	}
@@ -87,6 +86,8 @@ STDMETHODIMP TournamentManager::Subscribe(ITournamentEvents* p_client_sink, Role
 
 	if (conn.role == ROLE_ADMIN) {
 		conn.table = -1;
+	} else {
+		free_tables.push(table);
 	}
 
 	conn_list.push_back(conn);
@@ -130,6 +131,7 @@ STDMETHODIMP TournamentManager::RegisterPlayer(BSTR playerName, int rating) {
 	SafePlayerStats stats{ p->name, -1, 0, 0 };
 	player_stats[name] = stats;
 
+	std::wcout << L"Register Player: " << name << L" " << rating << std::endl;
 	return S_OK;
 }
 
@@ -154,8 +156,9 @@ void TournamentManager::NotifyMatchStarted(const Match& match) {
 					continue;
 				}
 			}
-			it++;
 		}
+
+		it++;
 	}
 
 	::SysFreeString(bstr_p1);
@@ -173,9 +176,9 @@ void TournamentManager::NotifyGridUpdate() {
 					continue;
 				}
 			}
-
-			it++;
 		}
+
+		it++;
 	}
 }
 
@@ -217,11 +220,7 @@ STDMETHODIMP TournamentManager::GetPlayerStats(BSTR player_name, PlayerStats* st
 	return S_OK;
 }
 
-STDMETHODIMP TournamentManager::StartTournament(int tables) {
-	if (tables <= 0) {
-		return E_INVALIDARG;
-	}
-
+STDMETHODIMP TournamentManager::StartTournament() {
 	std::lock_guard<std::mutex> lock(mu);
 	unsigned int p_num = players.size();
 
@@ -231,10 +230,6 @@ STDMETHODIMP TournamentManager::StartTournament(int tables) {
 
 	if (1 << (31 - __lzcnt(p_num)) != p_num) {
 		return E_FAIL;
-	}
-
-	for (int i = 0; i < tables; i++) {
-		free_tables.push(i);
 	}
 
 	// fill grid with matches
@@ -248,12 +243,14 @@ STDMETHODIMP TournamentManager::StartTournament(int tables) {
 			m.started = true;
 			m.table = free_tables.front();
 			free_tables.pop();
+			std::wcout << L"Start match!" << std::endl;
 			NotifyMatchStarted(m);
 		} else {
 			awaited_matches.push(p_num - i - 1);
 		}
 	}
 
+	std::wcout << L"Tournament have started." << L"Players total:" << p_num << L" waiting: " << awaited_matches.size() << std::endl;
 	return S_OK;
 }
 
@@ -280,9 +277,12 @@ STDMETHODIMP TournamentManager::SaveMatchResults(BSTR player1, BSTR player2, int
 	auto p_name2 = BSTRToWstring(player2);
 	int grid_size = grid.size();
 
+	std::wcout << "Save " << p_name1 << L" " << p_name2 << L" " << score1 << L":" << score2 << std::endl;
+
 	std::lock_guard<std::mutex> lock(mu);
 	for (int i = 1; i < grid_size; i++) {
 		auto& m = grid[i];
+
 		if (!(m.player1 && m.player2)) {
 			continue;
 		}
@@ -300,6 +300,8 @@ STDMETHODIMP TournamentManager::SaveMatchResults(BSTR player1, BSTR player2, int
 
 			UpdatePlayerStats(m.player1, score1, score2, i / 2 + 1);
 			UpdatePlayerStats(m.player2, score2, score1, i / 2 + 1);
+
+			std::wcout << "Table #" << m.table << L" is free now. Enqueue it." << std::endl;
 			free_tables.push(m.table);
 
 			int next_match_i = i >> 1;
@@ -314,8 +316,8 @@ STDMETHODIMP TournamentManager::SaveMatchResults(BSTR player1, BSTR player2, int
 					next_m.player2 = m.GetWinner();
 					next_m.score1 = next_m.score2 = 0;
 					awaited_matches.push(next_match_i);
-					TryStartMatches();
 				}
+				TryStartMatches();
 			} else {
 				NotifyTournamentFinished(m.GetWinner()->name);
 				return S_OK;
@@ -326,6 +328,7 @@ STDMETHODIMP TournamentManager::SaveMatchResults(BSTR player1, BSTR player2, int
 		}
 	}
 
+	std::wcout << L"Invalid args: " << p_name1 << L" " << p_name2 << L" " << score1 << L":" << score2 << std::endl;
 	return E_INVALIDARG;
 }
 

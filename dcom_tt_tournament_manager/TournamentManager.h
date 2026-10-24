@@ -51,7 +51,7 @@ public:
 	STDMETHODIMP_(ULONG) Release() override;
 
 	STDMETHODIMP RegisterPlayer(BSTR playerName, int rating) override;
-	STDMETHODIMP StartTournament(int tables) override;
+	STDMETHODIMP StartTournament() override;
 	STDMETHODIMP SaveMatchResults(BSTR player1, BSTR player2, int score1, int score2) override;
 	STDMETHODIMP GetPlayerStats(BSTR player_name, PlayerStats* stats) override;
 	STDMETHODIMP Authorize(BSTR password, int* success) override;

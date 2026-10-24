@@ -44,7 +44,7 @@ STDMETHODIMP TournamentEvents::OnMatchStarted(BSTR player1, BSTR player2, int ta
 	std::wcout 
 		<< L"Match started between " 
 		<< p1_name << L" and " << p2_name 
-		<< L" (" << table << L")" << std::endl;
+		<< L" (table #" << table << L")" << std::endl;
 
 	return S_OK;
 }

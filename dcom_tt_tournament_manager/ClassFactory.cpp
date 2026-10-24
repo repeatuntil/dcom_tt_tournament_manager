@@ -33,13 +33,14 @@ STDMETHODIMP TournamentClassFactory::CreateInstance(IUnknown* pUnk, REFIID riid,
 		return CLASS_E_NOAGGREGATION;
 	}
 
-	TournamentManager* tournament_manager = new TournamentManager();
-	HRESULT hr = tournament_manager->QueryInterface(riid, ppvObject);
-	if (FAILED(hr)) {
-		std::wcout << L"Can't create tManager instance" << std::endl;
-		delete tournament_manager;
-	} 
+	if (pSingletonManager == nullptr) {
+		pSingletonManager = new TournamentManager();
+		if (!pSingletonManager) {
+			return E_OUTOFMEMORY;
+		}
+	}
 
+	HRESULT hr = pSingletonManager->QueryInterface(riid, ppvObject);
 	return hr;
 }
 

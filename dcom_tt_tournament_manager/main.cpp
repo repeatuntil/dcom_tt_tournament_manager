@@ -30,10 +30,10 @@ int main() {
         return 1;
     }
 
-    if (!RegisterTLB(L"..\\..\\dcom_tt_tournament_manager\\tournament_server.tlb")) {
+    /*if (!RegisterTLB(L"..\\..\\dcom_tt_tournament_manager\\tournament_server.tlb")) {
         ::CoUninitialize();
         return 1;
-    }
+    }*/
 
     auto pTournamentFactory = new TournamentClassFactory();
     hr = ::CoRegisterClassObject(

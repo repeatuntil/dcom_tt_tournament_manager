@@ -1,7 +1,9 @@
 #include <windows.h>
 #include "TournamentEvents.h"
 #include "Utils.h"
+#include <objbase.h>
 #include <iostream>
+#include <thread>
 
 HANDLE exitEvent = ::CreateEvent(nullptr, FALSE, FALSE, NULL);
 
@@ -14,6 +16,113 @@ BOOL WINAPI ConsoleExitHandler(DWORD dwCtrlType) {
         return TRUE;
     }
     return FALSE;
+}
+
+void HandleJudgeCommands(ITournamentManager* pManager) {
+    std::wcout << L"You've entered tt tournament management system as judge.\n"
+        L"You can report match results with command: [player1] [player2] [score1] [score2]\n" 
+        L"Use command 'send_res' to report results. Use command 'exit' to exit.\n"
+        << std::endl;
+
+    bool waiting = true;
+    std::string player1, player2, command;
+    int score1, score2;
+
+    while (waiting) {
+        std::cin >> command;
+        if (command == "exit") {
+            ::SetEvent(exitEvent);
+            return;
+        } else if (command == "send_res") {
+            std::cin >> player1 >> player2 >> score1 >> score2;
+            BSTR p1_bstr = WStringToBSTR(str_to_wstring(player1));
+            BSTR p2_bstr = WStringToBSTR(str_to_wstring(player2));
+
+            HRESULT hr = pManager->SaveMatchResults(p1_bstr, p2_bstr, score1, score2);
+            if (FAILED(hr)) {
+                std::cerr << "Match results report failed. ERROR: 0x" << std::hex << hr << std::endl;
+            }
+
+            ::SysFreeString(p1_bstr);
+            ::SysFreeString(p2_bstr);
+        } else {
+            std::cerr << "Unknown command: " << command << std::endl;
+        }
+    }
+}
+
+void HandleAdminCommands(ITournamentManager* pManager) {
+    std::wcout << L"You've entered tt tournament management system as admin.\n"
+        L"Available commands:\n\t'get_stats': [player_name]\n\t'reg_player': [player_name] [rating]"
+        L"\n\t'start_tournament': [tables].\n\t'exit'\n"
+        << std::endl;
+
+    bool waiting = true;
+    std::string player, command;
+    PlayerStats stats{};
+    HRESULT hr;
+
+    while (waiting) {
+        std::cin >> command;
+        if (command == "exit") {
+            ::SetEvent(exitEvent);
+            return;
+
+        } else if (command == "get_stats") {
+            std::cin >> player;
+            BSTR p_bstr = WStringToBSTR(str_to_wstring(player));
+
+            hr = pManager->GetPlayerStats(p_bstr, &stats);
+            if (FAILED(hr)) {
+                std::cerr << "Failed to get player stats. ERROR: 0x" << std::hex << hr << std::endl;
+            }
+
+            ::SysFreeString(p_bstr);
+
+        } else if (command == "reg_player") {
+            int rating;
+            std::cin >> player >> rating;
+            BSTR p_bstr = WStringToBSTR(str_to_wstring(player));
+
+            hr = pManager->RegisterPlayer(p_bstr, rating);
+            if (FAILED(hr)) {
+                std::cerr << "Failed to register player. ERROR: 0x" << std::hex << hr << std::endl;
+            }
+
+            ::SysFreeString(p_bstr);
+        } else if (command == "start_tournament") {
+            hr = pManager->StartTournament();
+            if (FAILED(hr)) {
+                std::cerr << "Failed to start tournament. ERROR: 0x" << std::hex << hr << std::endl;
+            }
+        } else {
+            std::cerr << "Unknown command: " << command << std::endl;
+        }
+    }
+}
+
+void ClientActionsHandler(IGlobalInterfaceTable* pGIT, DWORD dwManagerId, Role role) {
+    ::CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+
+    ITournamentManager* pManager = nullptr;
+    HRESULT hr = pGIT->GetInterfaceFromGlobal(dwManagerId, IID_ITournamentManager, (void**)&pManager);
+
+    if (SUCCEEDED(hr)) {
+        switch (role) {
+        case ROLE_JUDGE:
+            HandleJudgeCommands(pManager);
+            break;
+        case ROLE_ADMIN:
+            HandleAdminCommands(pManager);
+            break;
+        default:
+            std::cerr << "Unknown role: " << role << std::endl;
+        }
+    } else {
+        std::cerr << "Failed to get interface from GIT. ERROR: 0x" << std::hex << hr << std::endl;
+    }
+    
+    ::CoUninitialize();
 }
 
 bool TryAuthorizeAsAdmin(ITournamentManager* pManager, Role& role) {
@@ -76,10 +185,10 @@ int main() {
         return 1;
     }
 
-    if (!RegisterTLB(L"..\\..\\dcom_tt_tournament_manager\\tournament_server.tlb")) {
+    /*if (!RegisterTLB(L"..\\..\\dcom_tt_tournament_manager\\tournament_server.tlb")) {
         ::CoUninitialize();
         return 1;
-    }
+    }*/
 
     COSERVERINFO server_info = {};
     server_info.pwszName = nullptr; // localhost
@@ -87,6 +196,8 @@ int main() {
     MULTI_QI mqi = {};
     mqi.pIID = &IID_ITournamentManager;
     mqi.pItf = nullptr;
+
+    std::wcout << L"Nuka Nuka" << std::endl;
 
     ::CoCreateInstanceEx(
         CLSID_TournamentManager,
@@ -147,6 +258,19 @@ int main() {
     MSG msg;
     DWORD nCount = 1;
 
+    IGlobalInterfaceTable* pGIT = nullptr;
+    hr = ::CoCreateInstance(
+        CLSID_StdGlobalInterfaceTable,
+        NULL,
+        CLSCTX_INPROC_SERVER,
+        IID_IGlobalInterfaceTable,
+        (void**)&pGIT
+    );
+
+    DWORD dwManagerId = 0;
+    hr = pGIT->RegisterInterfaceInGlobal(pManager, IID_ITournamentManager, &dwManagerId);
+    std::thread client_io(ClientActionsHandler, pGIT, dwManagerId, role);
+
     while (true) {
         DWORD result = ::MsgWaitForMultipleObjects(nCount, &exitEvent, FALSE, INFINITE, QS_ALLINPUT);
 
@@ -164,6 +288,7 @@ int main() {
     }
 
     // clear all and exit
+    client_io.join();
     std::wcout << L"\nShutting down the client..." << std::endl;
     pManager->Unsubscribe(static_cast<ITournamentEvents*>(server_events));
 

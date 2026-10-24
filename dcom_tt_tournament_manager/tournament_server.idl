@@ -45,7 +45,7 @@ library TournamentLib {
 	]
 		interface ITournamentManager : IUnknown {
 		HRESULT RegisterPlayer([in] BSTR player_name, [in] int rating);
-		HRESULT StartTournament([in] int tables);
+		HRESULT StartTournament();
 		HRESULT SaveMatchResults(
 			[in] BSTR player1,
 			[in] BSTR player2,
